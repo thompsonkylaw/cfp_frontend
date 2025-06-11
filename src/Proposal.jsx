@@ -3,7 +3,6 @@ import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import Target from './Target';
 import Input from './Input';
-import OutputTable from './OutputTable';
 import { useTranslation } from 'react-i18next';
 
 const Proposal = ({
@@ -22,52 +21,13 @@ const Proposal = ({
   disabled,
   selectedCurrency,
   company,
+  notionalAmount,
 }) => {
   const { t } = useTranslation();
-  const numberOfYears = target.numberOfYears;
-
-  const parseAmount = (str) => {
-    if (!str) return 0;
-    return parseFloat(str.replace(/,/g, '')) || 0;
-  };
 
   useEffect(() => {
-    const rows = [];
-    let accExpenseInUSD = 0;
-
-    for (let age = target.age; age <= 100; age++) {
-      const year = age - target.age + 1;
-      let baseExpenseInUSD = 0;
-
-      inputs.forEach(input => {
-        const fromAge = parseInt(input.fromAge, 10);
-        const toAge = parseInt(input.toAge, 10);
-        const amount = parseAmount(input.yearlyWithdrawalAmount);
-        if (age >= fromAge && age <= toAge) {
-          baseExpenseInUSD += amount;
-        }
-      });
-
-      let expenseInUSD = baseExpenseInUSD;
-      if (useInflation && inflationRate > 0) {
-        const yearsFromStart = age - target.age;
-        expenseInUSD = baseExpenseInUSD * Math.pow(1 + inflationRate / 100, yearsFromStart);
-      }
-
-      accExpenseInUSD += expenseInUSD;
-      const accExpenseInCurrency = accExpenseInUSD * currencyRate;
-
-      rows.push({
-        year,
-        age,
-        expenseInUSD,
-        accExpenseInUSD,
-        accExpenseInCurrency
-      });
-    }
-
-    setProcessData(proposalIndex, rows);
-  }, [target, inputs, inflationRate, currencyRate, useInflation, proposalIndex, setProcessData]);
+    setProcessData(proposalIndex, []);
+  }, [proposalIndex, setProcessData]);
 
   return (
     <Card elevation={1} sx={{ position: 'relative', minHeight: 180, mt: proposalIndex > 0 ? 2 : 0 }}>
@@ -82,7 +42,7 @@ const Proposal = ({
           company={company}
         />
         <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-          <IconButton onClick={addInput} disabled={inputs.length >= 5 || disabled }>
+          <IconButton onClick={addInput} disabled={inputs.length >= 6 || disabled}>
             <AddIcon />
           </IconButton>
           <IconButton onClick={removeInput} disabled={inputs.length <= 1 || disabled}>
@@ -99,11 +59,6 @@ const Proposal = ({
             company={company}
           />
         ))}
-        <OutputTable
-          processData={processData}
-          numberOfYears={numberOfYears}
-          selectedCurrency={selectedCurrency}
-        />
       </CardContent>
     </Card>
   );

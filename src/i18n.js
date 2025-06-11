@@ -25,6 +25,12 @@ i18next
     resources: {
       en: {
         translation: {
+          "Start Withdrawal Year":"Start Withdrawal Year",
+          "Withdraw Number of Years": "Withdraw # of Yrs",
+          'Max Amount Withdraw Yearly': 'Max $ Withdraw Yearly',
+          'Amount Withdraw Yearly': 'Amount Withdraw Yearly',
+          "Account Balance" : "Account Balance",
+          "Annual Dividend Rate" : "Annual Dividend Rate",
           currencySelection: "Report Currency Selection",
           Proposal: 'Proposal',
           'Expense in USD': 'Expense in USD',
@@ -228,6 +234,12 @@ i18next
       },
       "zh-HK": {
         translation: {
+          "Start Withdrawal Year":"從第幾年提取",
+          "Withdraw Number of Years": "共提取多少年",
+          'Max Amount Withdraw Yearly': '最多每年提取',
+          'Amount Withdraw Yearly': '每年提取',
+          "Account Balance" : "戶口餘額",
+          "Annual Dividend Rate" : "每年派息率",
           currencySelection: "選擇報表貨幣",
           formattedFinancingTotalCost: "總保費",
           formattedFinancingTotalCostPerYear: "年繳保費",
@@ -437,6 +449,13 @@ i18next
       },
       "zh-CN": {
         translation: {
+          "Account Balance" : "戶口餘額",
+          "Start Withdrawal Year":"从第几年提取",
+          "Withdraw Number of Years": "共提取多少年",
+          'Max Amount Withdraw Yearly': '最多每年提取',
+          'Amount Withdraw Yearly' : '每年提取',
+          'Account Balance': '户口余额',
+          "Annual Dividend Rate" : "每年派息率",
           currencySelection: "选择报表货币",
           Proposal: '计划书',
           'Expense in USD': '美元开支',

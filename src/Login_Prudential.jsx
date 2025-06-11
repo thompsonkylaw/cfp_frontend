@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import prudentialSavingPlans from './dropdown/prudential/prudential_saving_plan.json';
 import premiumPaymentPeriodOptions from './dropdown/prudential/premium_payment_period_options.json';
-import PdfViewer from './PdfViewer';
+import InputWithRate from './InputWithRate';
 
-import { 
+import {
   Modal,
   Box,
   Typography,
@@ -27,7 +27,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormHelperText
+  FormHelperText,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -43,14 +43,13 @@ const modalStyle = {
   borderRadius: 2,
   p: 4,
   maxHeight: '90vh',
-  overflowY: 'auto'
+  overflowY: 'auto',
 };
 
-function Login({ 
+function Login({
   open,
   onClose,
-  // processedData, 
-  inputs, 
+  inputs,
   numberOfYearAccMP,
   useInflation,
   setFinalNotionalAmount,
@@ -66,31 +65,30 @@ function Login({
   filename,
   setfilename,
   proposals,
+  setProposals,
+  setNotionalAmount,
+  notionalAmount,
 }) {
   const IsProduction = IsProduction_Login;
   const whitelist = ['thompsonkylaw@gmail.com', 'yuhodiy@gmail.com'];
-  
+
   const { t } = useTranslation();
   const [url, setUrl] = useState('https://www.prudential.com.hk/tc/');
-  // const [username, setUsername] = IsProduction ? useState(() => localStorage.getItem('username') || '') : useState('02987584');
-  // const [password, setPassword] = IsProduction ? useState(() => localStorage.getItem('password') || '') : useState('Wenwen67');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState(() => localStorage.getItem('password') || '');
-  const [loginEmail, setloginEmail] = useState('')
+  const [loginEmail, setloginEmail] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [step, setStep] = useState('login');
   const [loading, setLoading] = useState(false);
   const [systemMessage, setSystemMessage] = useState('');
-  const [newNotionalAmount, setNewNotionalAmount] = useState('');
   const [isCorporateCustomer, setIsCorporateCustomer] = useState(false);
   const [isPolicyHolder, setIsPolicyHolder] = useState(true);
   const [insuranceAge, setInsuranceAge] = useState('40');
   const [gender, setGender] = useState('Male');
   const [isSmoker, setIsSmoker] = useState(false);
-  const [notionalAmount, setNotionalAmount] = useState('50000');
   const [premiumPaymentMethod, setPremiumPaymentMethod] = useState('每年');
   const [withdrawalPeriod, setWithdrawalPeriod] = useState('');
-  const [proposalLanguage, setProposalLanguage] = useState("zh-HK");
+  const [proposalLanguage, setProposalLanguage] = useState('zh-HK');
   const [availablePaymentPeriods, setAvailablePaymentPeriods] = useState([]);
   const [logs, setLogs] = useState(() => {
     const storedLogs = localStorage.getItem('loginLogs');
@@ -101,14 +99,11 @@ function Login({
   const [systemLoginName, setSystemLoginName] = useState('');
   const [confirmSystemLoginName, setConfirmSystemLoginName] = useState('');
   const [error, setError] = useState('');
+  const [firstTableData, setFirstTableData] = useState(null);
   const logRef = useRef(null);
   const shouldShowField = false;
-  const [remainingTimeNewNotional, setRemainingTimeNewNotional] = useState(180);
-  const [isTimerRunningNewNotional, setIsTimerRunningNewNotional] = useState(false);
-  const newNotionalInputRef = useRef(null);
   const eventSourceRef = useRef(null);
   const reconnectIntervalRef = useRef(null);
-  const [retryPdf, setRetryPdf] = useState(null);
   const [isWhitelisted, setIsWhitelisted] = useState(false);
 
   const [selectedAge1, setSelectedAge1] = useState(() => {
@@ -126,16 +121,15 @@ function Login({
   const serverURL = IsProduction ? 'https://prudentialbackend-production.up.railway.app' : 'http://localhost:5004';
   const sessionIdRef = useRef(sessionId);
   const useAge = false;
-  const isEduFund = true;
-  const isCFP = false;
-// State for calculation_data
+  const isEduFund = false;
+  const isCFP = true;
+
   const [processedData, setProcessedData] = useState([]);
   const [calculationInputs, setCalculationInputs] = useState({});
 
-  // Process inputs and set calculation data
   useEffect(() => {
     if (inputs && inputs[0] && inputs[0].processData) {
-      const newProcessedData = inputs[0].processData.map(item => ({
+      const newProcessedData = inputs[0].processData.map((item) => ({
         yearNumber: item.year,
         age: item.age,
         medicalPremium: item.expenseInUSD,
@@ -154,28 +148,20 @@ function Login({
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
-   
+
   useEffect(() => {
     const handleBeforeUnload = () => {
-      console.log("Session ID before fetch:", sessionIdRef.current);
       if (sessionIdRef.current) {
-        const data = JSON.stringify({ session_id: sessionIdRef.current });
         fetch(`${serverURL}/terminate-session`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: data,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionIdRef.current }),
           keepalive: true,
         });
       }
     };
-  
     window.addEventListener('beforeunload', handleBeforeUnload);
-  
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [serverURL]);
 
   useEffect(() => {
@@ -186,38 +172,19 @@ function Login({
     localStorage.setItem('selectedAge2', selectedAge2);
   }, [selectedAge2]);
 
-  const handlePdfDownload = (pdfBase64, filename) => {
-    setpdfBase64(pdfBase64);
-    setfilename(filename);
-    const binaryString = atob(pdfBase64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    
-    setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-    }, 1000);
-  };
-
   useEffect(() => {
-      if (inputs[0].target.age && inputs[0].target.numberOfYears) {
-        const calculatedWithdrawalPeriod = 100 - inputs[0].target.age - inputs[0].target.numberOfYears + 2;
-        setWithdrawalPeriod(calculatedWithdrawalPeriod);
-      }
-    }, [inputs[0].target.age, inputs[0].target.numberOfYears]);
+    if (inputs[0].target.age && inputs[0].target.numberOfYears) {
+      const calculatedWithdrawalPeriod = 100 - inputs[0].target.age - inputs[0].target.numberOfYears + 2;
+      setWithdrawalPeriod(calculatedWithdrawalPeriod);
+    }
+  }, [inputs[0].target.age, inputs[0].target.numberOfYears]);
 
   useEffect(() => {
     if (open) {
       const initSession = async () => {
         try {
           const response = await axios.post(serverURL + '/init-session');
-          const { session_id } = response.data;
-          setSessionId(session_id);
+          setSessionId(response.data.session_id);
         } catch (error) {
           console.error('Failed to initialize session', error);
           setError(t('Failed_to_initialize_session'));
@@ -230,8 +197,6 @@ function Login({
   useEffect(() => {
     if (open) {
       if (!IsProduction) {
-        const storedUsername = localStorage.getItem('username') || '';
-        // setUsername(storedUsername);
         setUsername('02987584');
         setPassword('Wenwen67');
       } else {
@@ -242,19 +207,16 @@ function Login({
 
   const fetchSystemLoginName = () => {
     const apiUrl = window.wpApiSettings.root + 'myplugin/v1/system-login-name';
-    fetch(apiUrl, { 
+    fetch(apiUrl, {
       credentials: 'include',
-      headers: {
-        'X-WP-Nonce': window.wpApiSettings.nonce
-      }
+      headers: { 'X-WP-Nonce': window.wpApiSettings.nonce },
     })
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         setIsWhitelisted(whitelist.includes(data.user_email));
-        if(data.user_email == "thompsonkylaw@gmail.com"){
+        if (data.user_email === 'thompsonkylaw@gmail.com') {
           setloginEmail('thompsonkylaw@gmail.com');
         }
-
         if (data.system_login_name) {
           setUsername(data.system_login_name);
         } else {
@@ -262,7 +224,6 @@ function Login({
         }
       })
       .catch(() => {
-        console.log("IsProduction=", IsProduction);
         setError(t('Failed_to_fetch_system_login_name'));
       });
   };
@@ -272,34 +233,28 @@ function Login({
       const eventSource = new EventSource(`${serverURL}/logs/${sessionId}`);
       eventSourceRef.current = eventSource;
       eventSource.onopen = () => {
-        console.log("SSE connection opened");
+        console.log('SSE connection opened');
         clearInterval(reconnectIntervalRef.current);
       };
       eventSource.onmessage = (event) => {
-        setLogs(prevLogs => {
+        setLogs((prevLogs) => {
           const updatedLogs = [...prevLogs, event.data];
           localStorage.setItem('loginLogs', JSON.stringify(updatedLogs));
           return updatedLogs;
         });
       };
-      eventSource.onerror = (error) => {
-        console.error("SSE error:", error);
+      eventSource.onerror = () => {
         eventSource.close();
-        console.log("SSE connection closed due to error");
+        console.log('SSE connection closed due to error');
         startReconnectTimer();
       };
-    }
-    if(loginEmail == 'thompsonkylaw@gmail.com'){
-      // console.log('loginEmail=',loginEmail);
-      setUsername('02987584')
-      setPassword('Wenwen67');
     }
   };
 
   const startReconnectTimer = () => {
     reconnectIntervalRef.current = setInterval(() => {
       if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CLOSED) {
-        console.log("Attempting to reconnect SSE...");
+        console.log('Attempting to reconnect SSE...');
         connectSSE();
       }
     }, 5000);
@@ -310,7 +265,7 @@ function Login({
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
-        console.log("SSE connection closed on cleanup");
+        console.log('SSE connection closed on cleanup');
       }
       clearInterval(reconnectIntervalRef.current);
     };
@@ -318,30 +273,24 @@ function Login({
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CLOSED) {
-          console.log("Reconnecting SSE on visibility change");
-          connectSSE();
-        }
+      if (document.visibilityState === 'visible' && eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CLOSED) {
+        console.log('Reconnecting SSE on visibility change');
+        connectSSE();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {
     const handleFocus = () => {
       if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CLOSED) {
-        console.log("Reconnecting SSE on focus");
+        console.log('Reconnecting SSE on focus');
         connectSSE();
       }
     };
     window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   useEffect(() => {
@@ -349,25 +298,6 @@ function Login({
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
   }, [logDialogOpen, logs]);
-
-  useEffect(() => {
-    if (step === 'retry') {
-      newNotionalInputRef.current?.focus();
-    }
-  }, [step]);
-
-  useEffect(() => {
-    let timer;
-    if (isTimerRunningNewNotional && remainingTimeNewNotional > 0) {
-      timer = setInterval(() => {
-        setRemainingTimeNewNotional(prev => prev - 1);
-      }, 1000);
-    } else if (remainingTimeNewNotional === 0) {
-      alert('輸入新的名義金額超時');
-      handleClose();
-    }
-    return () => clearInterval(timer);
-  }, [isTimerRunningNewNotional, remainingTimeNewNotional]);
 
   const handleSetSystemLoginName = () => {
     setError('');
@@ -383,15 +313,12 @@ function Login({
     const apiUrl = window.wpApiSettings.root + 'myplugin/v1/system-login-name';
     fetch(apiUrl, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-WP-Nonce': window.wpApiSettings.nonce
-      },
+      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': window.wpApiSettings.nonce },
       body: JSON.stringify({ system_login_name: systemLoginName }),
-      credentials: 'include'
+      credentials: 'include',
     })
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         if (data.success) {
           setUsername(systemLoginName);
           setShowUsernamePopup(false);
@@ -403,9 +330,7 @@ function Login({
       .catch(() => {
         setError(t('Failed_to_connect_to_the_server'));
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   };
 
   const handleClosePopup = () => {
@@ -417,19 +342,16 @@ function Login({
     if (sessionId) {
       try {
         await axios.post(`${serverURL}/terminate-session`, { session_id: sessionId });
-        console.log("Session terminated successfully");
+        console.log('Session terminated successfully');
       } catch (error) {
-        console.error("Failed to terminate session:", error);
+        console.error('Failed to terminate session:', error);
       }
     }
     onClose();
     setStep('login');
     setSystemMessage('');
-    setNewNotionalAmount('');
     setSessionId('');
-    setIsTimerRunningNewNotional(false);
-    setRemainingTimeNewNotional(180);
-    setRetryPdf(null);
+    setFirstTableData(null);
   };
 
   const handleLogin = async (e) => {
@@ -440,7 +362,6 @@ function Login({
     }
     setLogs([]);
     localStorage.setItem('loginLogs', JSON.stringify([]));
-    // console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     try {
       const payload = {
         session_id: sessionId,
@@ -448,17 +369,17 @@ function Login({
         username,
         password,
         calculation_data: {
-          processedData : processedData,
-          inputs : calculationInputs,
+          processedData: processedData,
+          inputs: calculationInputs,
           totalAccumulatedMP: 0,
-          proposals:proposals,
+          proposals: proposals,
         },
         cashValueInfo: {
           age_1: selectedAge1,
           age_2: selectedAge2,
           age_1_cash_value: 0,
           age_2_cash_value: 0,
-          annual_premium: 0
+          annual_premium: 0,
         },
         formData: {
           isCorporateCustomer,
@@ -470,7 +391,7 @@ function Login({
           gender,
           isSmoker,
           basicPlan: clientInfo.basicPlan,
-          currency: clientInfo.basicPlanCurrency, 
+          currency: clientInfo.basicPlanCurrency,
           notionalAmount,
           premiumPaymentPeriod: clientInfo.premiumPaymentPeriod,
           premiumPaymentMethod,
@@ -480,41 +401,16 @@ function Login({
           selectedAge2,
           useAge,
           isEduFund,
-          isCFP
+          isCFP,
         },
       };
-      // console.log("hrererereetereeererererererere")
       const response = await axios.post(serverURL + '/login', payload);
-      // console.log("thrhrhrhhhhhhhhhhrhrhrhrhrhrhr")
-      if (response.data.status === 'retry') {
-        setSystemMessage(response.data.system_message);
-        setSessionId(response.data.session_id);
-        setStep('retry');
-        setRemainingTimeNewNotional(180);
-        setIsTimerRunningNewNotional(true);
-        if (response.data.pdf_base64) {
-          setRetryPdf({
-            pdf_base64: response.data.pdf_base64,
-            filename: response.data.filename
-          });
-        } else {
-          setRetryPdf(null);
-        }
-      } else if (response.data.status === 'success') {
-        setCashValueInfo({
-          age_1: selectedAge1,
-          age_2: selectedAge2,
-          age_1_cash_value: response.data.age_1_cash_value,
-          age_2_cash_value: response.data.age_2_cash_value,
-          annual_premium: response.data.annual_premium,
-          firstTable_data: response.data.firstTable_data,
-          // lastYearWithdrawal_cash_value :response.data.lastYearWithdrawal_cash_value,
-          cashValueTable:response.data.cashValueTable
-        });
-        setStep('success');
-        setFinalNotionalAmount(notionalAmount);
-        setRetryPdf(null);
-        handlePdfDownload(response.data.pdf_base64, response.data.filename);
+      if (response.data.status === 'get_max_success') {
+        setProposals(response.data.proposals);
+        setFirstTableData(response.data.firstTable_data);
+        setStep('input_with_rate');
+      } else {
+        alert('Unexpected status: ' + response.data.status);
       }
     } catch (error) {
       alert('Error: ' + (error.response?.data?.detail || 'Unknown error'));
@@ -522,55 +418,26 @@ function Login({
     setLoading(false);
   };
 
-  const handleRetrySubmit = async (e) => {
-    e.preventDefault();
-    setIsTimerRunningNewNotional(false);
+  const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(serverURL + '/retry-notional', {
+      const response = await axios.post(`${serverURL}/get-account-balance`, {
         session_id: sessionId,
-        new_notional_amount: newNotionalAmount,
+        proposals: proposals,
       });
-      if (response.data.status === 'retry') {
-        setSystemMessage(response.data.system_message);
-        setNewNotionalAmount('');
-        setRemainingTimeNewNotional(180);
-        setIsTimerRunningNewNotional(true);
-        if (response.data.pdf_base64) {
-          setRetryPdf({
-            pdf_base64: response.data.pdf_base64,
-            filename: response.data.filename
-          });
-        } else {
-          setRetryPdf(null);
-        }
-      } else if (response.data.status === 'success') {
-        setCashValueInfo(prev => ({
-          ...prev,
-          age_1_cash_value: response.data.age_1_cash_value,
-          age_2_cash_value: response.data.age_2_cash_value,
-          annual_premium: response.data.annual_premium,
-          firstTable_data: response.data.firstTable_data,
-          // lastYearWithdrawal_cash_value :response.data.lastYearWithdrawal_cash_value,
-          cashValueTable:response.data.cashValueTable
-        }));
+      if (response.data.status === 'success') {
         setStep('success');
-        setFinalNotionalAmount(newNotionalAmount);
-        setRetryPdf(null);
-        handlePdfDownload(response.data.pdf_base64, response.data.filename);
+        setProposals(response.data.proposals);
+      } else {
+        alert('Unexpected status: ' + response.data.status);
       }
     } catch (error) {
+      console.error('Error submitting data', error);
       alert('Error: ' + (error.response?.data?.detail || 'Unknown error'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  const handleSubmit = (e) => {
-    if (step === 'login') {
-      handleLogin(e);
-    } else if (step === 'retry') {
-      handleRetrySubmit(e);
-    }
+    console.log("new proposals====",proposals)
   };
 
   useEffect(() => {
@@ -579,7 +446,7 @@ function Login({
     } else {
       setAvailablePaymentPeriods([]);
     }
-    setClientInfo(prev => ({ ...prev, premiumPaymentPeriod: '' }));
+    setClientInfo((prev) => ({ ...prev, premiumPaymentPeriod: '' }));
   }, [clientInfo.basicPlan, clientInfo.basicPlanCurrency, premiumPaymentPeriodOptions, setClientInfo]);
 
   const numberFormatter = new Intl.NumberFormat('en-US', {
@@ -596,7 +463,6 @@ function Login({
       setDisplayValue('');
       return;
     }
-
     const numericValue = parseInt(input, 10);
     if (!isNaN(numericValue)) {
       setNotionalAmount(numericValue.toString());
@@ -628,7 +494,6 @@ function Login({
     'en': t('login.languageEn'),
   };
 
-  // const premiumPeriodError = clientInfo.premiumPaymentPeriod && parseInt(clientInfo.premiumPaymentPeriod, 10) !== inputs.numberOfYears;
   const premiumPeriodError = clientInfo.premiumPaymentPeriod && parseInt(clientInfo.premiumPaymentPeriod, 10) !== inputs[0].target.numberOfYears;
   const notionalNumeric = notionalAmount ? parseInt(notionalAmount, 10) : 0;
   const notionalError = !notionalAmount || notionalNumeric < 1500;
@@ -638,7 +503,7 @@ function Login({
     ? t('login.notionalAmountError')
     : '';
 
-  const isFormValid = 
+  const isFormValid =
     clientInfo.surname &&
     clientInfo.givenName &&
     clientInfo.basicPlan &&
@@ -657,13 +522,16 @@ function Login({
 
   const buttonDisabled = loading || disabled || !isFormValid;
 
+  const updateInputInProposal = (proposalIndex, inputIndex, newInput) => {
+    setProposals((prevProposals) => {
+      const newProposals = [...prevProposals];
+      newProposals[proposalIndex].inputs[inputIndex] = newInput;
+      return newProposals;
+    });
+  };
+
   return (
-    <Modal
-      open={open}
-      onClose={() => {}}
-      aria-labelledby="login-modal"
-      aria-describedby="insurance-plan-login"
-    >
+    <Modal open={open} onClose={() => {}} aria-labelledby="login-modal" aria-describedby="insurance-plan-login">
       <Paper sx={modalStyle}>
         <IconButton
           aria-label="close"
@@ -671,12 +539,7 @@ function Login({
             handleClose();
             e.currentTarget.blur();
           }}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
+          sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
         >
           <CloseIcon />
         </IconButton>
@@ -684,9 +547,9 @@ function Login({
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
           {t('login.title')}
         </Typography>
-        
+
         {step === 'login' ? (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleLogin}>
             <div className="margin-top-20 info-section">
               <div className="customer-card-container" style={{ display: 'grid', gap: '20px' }}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
@@ -695,7 +558,7 @@ function Login({
                       id="input_text_field_7"
                       label={<>{t('login.surname')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
                       value={clientInfo.surname}
-                      onChange={(e) => setClientInfo(prev => ({ ...prev, surname: e.target.value }))}
+                      onChange={(e) => setClientInfo((prev) => ({ ...prev, surname: e.target.value }))}
                       required
                       fullWidth
                       disabled={loading || disabled}
@@ -710,7 +573,7 @@ function Login({
                       id="input_text_field_1"
                       label={<>{t('login.givenName')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
                       value={clientInfo.givenName}
-                      onChange={(e) => setClientInfo(prev => ({ ...prev, givenName: e.target.value }))}
+                      onChange={(e) => setClientInfo((prev) => ({ ...prev, givenName: e.target.value }))}
                       required
                       fullWidth
                       disabled={loading || disabled}
@@ -727,7 +590,7 @@ function Login({
                       id="input_text_field_2"
                       label={t('login.chineseName')}
                       value={clientInfo.chineseName}
-                      onChange={(e) => setClientInfo(prev => ({ ...prev, chineseName: e.target.value }))}
+                      onChange={(e) => setClientInfo((prev) => ({ ...prev, chineseName: e.target.value }))}
                       fullWidth
                       disabled={loading || disabled}
                       inputProps={{ maxLength: 10 }}
@@ -747,7 +610,7 @@ function Login({
                         InputLabelProps={{ style: { fontWeight: '500' } }}
                         select
                       >
-                        {Array.from({ length: 100 }, (_, i) => 0 + i).map((num) => (
+                        {Array.from({ length: 100 }, (_, i) => i).map((num) => (
                           <MenuItem key={num} value={String(num)}>
                             {num}
                           </MenuItem>
@@ -773,24 +636,21 @@ function Login({
                         disabled={loading || disabled}
                         label={
                           <>
-                            <span style={{
-                              display: 'inline-block',
-                              width: '20px',
-                              height: '20px',
-                              border: '2px solid #ccc',
-                              borderRadius: '50%',
-                              marginRight: '8px',
-                              backgroundColor: '#fff',
-                              position: 'relative',
-                            }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '2px solid #ccc',
+                                borderRadius: '50%',
+                                marginRight: '8px',
+                                backgroundColor: '#fff',
+                                position: 'relative',
+                              }}
+                            >
                               {gender === 'Male' && (
                                 <svg
-                                  style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
+                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -810,24 +670,21 @@ function Login({
                         disabled={loading || disabled}
                         label={
                           <>
-                            <span style={{
-                              display: 'inline-block',
-                              width: '20px',
-                              height: '20px',
-                              border: '2px solid #ccc',
-                              borderRadius: '50%',
-                              marginRight: '8px',
-                              backgroundColor: '#fff',
-                              position: 'relative',
-                            }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '2px solid #ccc',
+                                borderRadius: '50%',
+                                marginRight: '8px',
+                                backgroundColor: '#fff',
+                                position: 'relative',
+                              }}
+                            >
                               {gender === 'Female' && (
                                 <svg
-                                  style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
+                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -859,24 +716,21 @@ function Login({
                         disabled={loading || disabled}
                         label={
                           <>
-                            <span style={{
-                              display: 'inline-block',
-                              width: '20px',
-                              height: '20px',
-                              border: '2px solid #ccc',
-                              borderRadius: '50%',
-                              marginRight: '8px',
-                              backgroundColor: '#fff',
-                              position: 'relative',
-                            }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '2px solid #ccc',
+                                borderRadius: '50%',
+                                marginRight: '8px',
+                                backgroundColor: '#fff',
+                                position: 'relative',
+                              }}
+                            >
                               {isSmoker && (
                                 <svg
-                                  style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
+                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -896,24 +750,21 @@ function Login({
                         disabled={loading || disabled}
                         label={
                           <>
-                            <span style={{
-                              display: 'inline-block',
-                              width: '20px',
-                              height: '20px',
-                              border: '2px solid #ccc',
-                              borderRadius: '50%',
-                              marginRight: '8px',
-                              backgroundColor: '#fff',
-                              position: 'relative',
-                            }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '2px solid #ccc',
+                                borderRadius: '50%',
+                                marginRight: '8px',
+                                backgroundColor: '#fff',
+                                position: 'relative',
+                              }}
+                            >
                               {!isSmoker && (
                                 <svg
-                                  style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
+                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -941,7 +792,7 @@ function Login({
                       </InputLabel>
                       <Select
                         value={clientInfo.basicPlan}
-                        onChange={(e) => setClientInfo(prev => ({ ...prev, basicPlan: e.target.value }))}
+                        onChange={(e) => setClientInfo((prev) => ({ ...prev, basicPlan: e.target.value }))}
                         label={t('login.basicPlan')}
                         disabled={loading || disabled}
                         sx={{ backgroundColor: 'white', color: 'black' }}
@@ -962,7 +813,7 @@ function Login({
                       </InputLabel>
                       <Select
                         value={clientInfo.premiumPaymentPeriod}
-                        onChange={(e) => setClientInfo(prev => ({ ...prev, premiumPaymentPeriod: e.target.value }))}
+                        onChange={(e) => setClientInfo((prev) => ({ ...prev, premiumPaymentPeriod: e.target.value }))}
                         label={t('login.premiumPaymentPeriod')}
                         disabled={loading || disabled}
                         sx={{ backgroundColor: 'white', color: 'black' }}
@@ -990,7 +841,7 @@ function Login({
                       </InputLabel>
                       <Select
                         value={clientInfo.basicPlanCurrency}
-                        onChange={(e) => setClientInfo(prev => ({ ...prev, basicPlanCurrency: e.target.value }))}
+                        onChange={(e) => setClientInfo((prev) => ({ ...prev, basicPlanCurrency: e.target.value }))}
                         label={t('login.currency')}
                         disabled={loading || disabled}
                         sx={{ backgroundColor: 'white', color: 'black' }}
@@ -1013,17 +864,13 @@ function Login({
                       fullWidth
                       disabled={loading || disabled}
                       InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            {clientInfo.basicPlanCurrency === '美元' ? 'USD' : 'HKD'}
-                          </InputAdornment>
-                        ),
+                        startAdornment: <InputAdornment position="start">{clientInfo.basicPlanCurrency === '美元' ? 'USD' : 'HKD'}</InputAdornment>,
                       }}
                       error={notionalError}
                       helperText={notionalHelperText}
                       sx={{ mb: 2 }}
                       InputLabelProps={{ style: { fontWeight: '500' } }}
-                      placeholder={t("login.notioalAmountPlaceHolder")}
+                      placeholder={t('login.notioalAmountPlaceHolder')}
                     />
                   </div>
                 </Box>
@@ -1067,24 +914,21 @@ function Login({
                           disabled={loading || disabled}
                           label={
                             <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                width: '20px',
-                                height: '20px',
-                                border: `2px solid ${proposalLanguage === lang ? '#10740AFF' : '#ccc'}`,
-                                borderRadius: '50%',
-                                marginRight: '8px',
-                                backgroundColor: '#fff',
-                                position: 'relative',
-                              }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  width: '20px',
+                                  height: '20px',
+                                  border: `2px solid ${proposalLanguage === lang ? '#10740AFF' : '#ccc'}`,
+                                  borderRadius: '50%',
+                                  marginRight: '8px',
+                                  backgroundColor: '#fff',
+                                  position: 'relative',
+                                }}
+                              >
                                 {proposalLanguage === lang && (
                                   <svg
-                                    style={{
-                                      position: 'absolute',
-                                      top: '50%',
-                                      left: '50%',
-                                      transform: 'translate(-50%, -50%)',
-                                    }}
+                                    style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                     width="12"
                                     height="12"
                                     viewBox="0 0 24 24"
@@ -1190,120 +1034,49 @@ function Login({
                   variant="contained"
                   fullWidth
                   disabled={buttonDisabled}
-                  sx={{ 
-                    padding: '12px 24px', 
-                    backgroundColor: buttonDisabled ? '#ccc' : '#ed1b2e', 
-                    '&:hover': { backgroundColor: '#ed1b2e' } 
-                  }}
+                  sx={{ padding: '12px 24px', backgroundColor: buttonDisabled ? '#ccc' : '#ed1b2e', '&:hover': { backgroundColor: '#ed1b2e' } }}
                 >
                   {loading ? <CircularProgress size={24} /> : t('login.submitButton')}
                 </Button>
 
                 <Box sx={{ mt: 2 }}>
-                  <Button 
-                    onClick={() => setLogDialogOpen(true)} 
-                    variant="outlined"
-                    fullWidth
-                    sx={{ padding: '12px 24px' }}
-                  >
+                  <Button onClick={() => setLogDialogOpen(true)} variant="outlined" fullWidth sx={{ padding: '12px 24px' }}>
                     {t('login.viewLogs', { count: logs.length })}
                   </Button>
                 </Box>
               </div>
             </div>
           </form>
-        ) : step === 'retry' ? (
+        ) : step === 'input_with_rate' ? (
           <Box sx={{ mt: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('login.systemMessage')}
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              {systemMessage}
-            </Typography>
-            <TextField
-              label={t('login.newNotionalAmount')}
-              value={newNotionalAmount}
-              onChange={(e) => {
-                const value = e.target.value;
-                const rawValue = value.replace(/[^\d.]/g, '');
-                const parts = rawValue.split('.');
-                let whole = parts[0] || '';
-                const decimal = parts.length > 1 ? `.${parts[1]}` : '';
-                if (whole) {
-                  whole = parseInt(whole, 10).toLocaleString('en-US');
-                }
-                const formattedValue = whole + decimal;
-                if (value === '' || /^[0-9,]*\.?[0-9]*$/.test(value)) {
-                  setNewNotionalAmount(formattedValue);
-                }
-              }}
-              onFocus={() => {
-                if (!isTimerRunningNewNotional) {
-                  setIsTimerRunningNewNotional(true);
-                  setRemainingTimeNewNotional(180);
-                }
-              }}
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {clientInfo.basicPlanCurrency === '美元' ? 'USD' : 'HKD'}
-                  </InputAdornment>
-                ),
-                inputMode: 'decimal',
-              }}
-              error={!newNotionalAmount.trim()}
-              helperText={!newNotionalAmount.trim() ? t('login.fieldRequired') : ''}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ style: { fontWeight: '500' } }}
-              inputRef={newNotionalInputRef}
-            />
-            <Button
-              onClick={handleRetrySubmit}
-              variant="contained"
-              fullWidth
-              disabled={loading || !newNotionalAmount.trim()}
-              sx={{ 
-                backgroundColor: loading || !newNotionalAmount.trim() ? '#ccc' : '#ed1b2e', 
-                '&:hover': { backgroundColor: '#ed1b2e' } 
-              }}
-            >
-              {loading ? <CircularProgress size={24} /> : t('login.submitButton')}
-            </Button>
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Button onClick={() => setLogDialogOpen(true)} variant="outlined" fullWidth>
-                {t('login.viewLogs', { count: logs.length })}
-              </Button>
-            </Box>
-            {retryPdf && (
-              <Box sx={{ mt: 2, border: '1px solid #ccc', borderRadius: '4px', padding: '8px' }}>
-                <Typography variant="h6" gutterBottom>
-                  {t('login.retryPdfTitle')}
-                </Typography>
-                <PdfViewer pdfBase64={retryPdf.pdf_base64} />
-              </Box>
+            {proposals.length > 0 ? (
+              proposals.map((proposal, proposalIndex) => (
+                <InputWithRate
+                  key={proposalIndex}
+                  proposal={proposal}
+                  notionalAmount={notionalAmount}
+                  updateInput={(inputIndex, newInput) => updateInputInProposal(proposalIndex, inputIndex, newInput)}
+                  disabled={loading || disabled}
+                />
+              ))
+            ) : (
+              <Typography>{t('No inputs available')}</Typography>
             )}
+            <Button onClick={handleSubmit} variant="contained" sx={{ mt: 2 }} disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : t('Submit')}
+            </Button>
+            <Button onClick={handleClose} variant="contained" sx={{ mt: 2, ml: 2 }}>
+              {t('Close')}
+            </Button>
           </Box>
         ) : step === 'success' ? (
           <Box sx={{ mt: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {t('login.successMessage')}
+              {t('Account balance retrieved successfully')}
             </Typography>
-            <Button
-              onClick={handleClose}
-              variant="contained"
-              sx={{ 
-                backgroundColor: '#ed1b2e', 
-                '&:hover': { backgroundColor: '#ed1b2e' } 
-              }}
-            >
-              {t('login.completeButton')}
+            <Button onClick={handleClose} variant="contained" sx={{ mt: 2 }}>
+              {t('Close')}
             </Button>
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Button onClick={() => setLogDialogOpen(true)} variant="outlined" fullWidth>
-                {t('login.viewLogs', { count: logs.length })}
-              </Button>
-            </Box>
           </Box>
         ) : null}
 
@@ -1342,14 +1115,7 @@ function Login({
           <DialogTitle>{t('login.systemMessage')}</DialogTitle>
           <DialogContent>
             <Box
-              sx={{
-                maxHeight: '400px',
-                overflowY: 'auto',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                padding: '8px',
-                backgroundColor: '#f9f9f9',
-              }}
+              sx={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #ccc', borderRadius: '4px', padding: '8px', backgroundColor: '#f9f9f9' }}
               ref={logRef}
             >
               {logs.map((log, index) => (

@@ -8,7 +8,7 @@ import UseInflation from './UseInflation';
 import LanguageSwitch from './LanguageSwitch';
 import OutputForm_2 from './OutputForm_2';
 import OutputForm_3 from './OutputForm_3';
-import OutputForm_1 from './OutputForm_1';
+
 
 const theme = createTheme({
   palette: { primary: { main: '#1976d2' }, secondary: { main: '#dc004e' } },
@@ -18,7 +18,7 @@ const theme = createTheme({
 const App = () => {
   const IsProduction_Login = true;
   const { t } = useTranslation();
-
+  
   const [proposals, setProposals] = useState(() => {
     const saved = localStorage.getItem('proposals');
     if (saved) {
@@ -31,9 +31,8 @@ const App = () => {
     return [
       {
         target: { age: 6, numberOfYears: 5, currencyRate: 7.85, inflationRate: 1 },
-        inputs: [{ expenseType: 'tuition', fromAge: '19', toAge: '22', yearlyWithdrawalAmount: '50,000' }],
-        processData: []
-      }
+        inputs: [{ startWithdrawalYear: '6', withdrawNumberOfYear: '30', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' }],
+      },
     ];
   });
 
@@ -80,24 +79,25 @@ const App = () => {
   });
 
   const [finalNotionalAmount, setFinalNotionalAmount] = useState(null);
+  const [notionalAmount, setNotionalAmount] = useState('400000'); // New state for notionalAmount
   const [cashValueInfo, setCashValueInfo] = useState({
     age_1: 65,
     age_2: 85,
     age_1_cash_value: 0,
     age_2_cash_value: 0,
     annual_premium: 0,
-    firstTable_data: "",
-    lastYearWithdrawal_cash_value_index:0,
-    lastYearWithdrawal_cash_value:0,
-    cashValueTable:"",
+    firstTable_data: '',
+    lastYearWithdrawal_cash_value_index: 0,
+    lastYearWithdrawal_cash_value: 0,
+    cashValueTable: '',
   });
   const [clientInfo, setClientInfo] = useState({
-    surname: "VIP",
-    givenName: "VIP",
-    chineseName: "",
+    surname: 'VIP',
+    givenName: 'VIP',
+    chineseName: '',
     basicPlan: '宏摯傳承保障計劃(GS)',
     premiumPaymentPeriod: '15',
-    basicPlanCurrency: '美元'
+    basicPlanCurrency: '美元',
   });
   const [pdfBase64, setpdfBase64] = useState();
   const [filename, setfilename] = useState();
@@ -107,19 +107,19 @@ const App = () => {
   }, [proposals]);
 
   useEffect(() => {
-    setProposals(prevProposals =>
-      prevProposals.map(proposal => ({
+    setProposals((prevProposals) =>
+      prevProposals.map((proposal) => ({
         ...proposal,
-        target: { ...proposal.target, currencyRate }
+        target: { ...proposal.target, currencyRate },
       }))
     );
   }, [currencyRate]);
 
   useEffect(() => {
-    setProposals(prevProposals =>
-      prevProposals.map(proposal => ({
+    setProposals((prevProposals) =>
+      prevProposals.map((proposal) => ({
         ...proposal,
-        target: { ...proposal.target, inflationRate }
+        target: { ...proposal.target, inflationRate },
       }))
     );
   }, [inflationRate]);
@@ -150,9 +150,8 @@ const App = () => {
         ...proposals,
         {
           target: { age: 5, numberOfYears: 15, currencyRate: currencyRate, inflationRate: inflationRate },
-          inputs: [{ expenseType: '', fromAge: '', toAge: '', yearlyWithdrawalAmount: '' }],
-          processData: []
-        }
+          inputs: [{ startWithdrawalYear: '', withdrawNumberOfYear: '', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' }],
+        },
       ]);
     }
   };
@@ -164,30 +163,28 @@ const App = () => {
   };
 
   const updateProposalTarget = (proposalIndex, newTarget) => {
-    setProposals(prev => {
+    setProposals((prev) => {
       const newProposals = [...prev];
       newProposals[proposalIndex] = {
         ...newProposals[proposalIndex],
-        target: newTarget
+        target: newTarget,
       };
       return newProposals;
     });
   };
 
   const addInputToProposal = (proposalIndex) => {
-    if (proposals[proposalIndex].inputs.length < 5) {
-      setProposals(prev => {
+    if (proposals[proposalIndex].inputs.length < 6) {
+      setProposals((prev) => {
         const newProposals = [...prev];
         const proposal = newProposals[proposalIndex];
-        const lastInput = proposal.inputs[proposal.inputs.length - 1];
-        const newFromAge = lastInput ? Number(lastInput.toAge) + 1 : '';
         const newInputs = [
           ...proposal.inputs,
-          { expenseType: '', fromAge: newFromAge, toAge: '', yearlyWithdrawalAmount: '' }
+          { startWithdrawalYear: '', withdrawNumberOfYear: '', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' },
         ];
         newProposals[proposalIndex] = {
           ...proposal,
-          inputs: newInputs
+          inputs: newInputs,
         };
         return newProposals;
       });
@@ -196,13 +193,13 @@ const App = () => {
 
   const removeInputFromProposal = (proposalIndex) => {
     if (proposals[proposalIndex].inputs.length > 1) {
-      setProposals(prev => {
+      setProposals((prev) => {
         const newProposals = [...prev];
         const proposal = newProposals[proposalIndex];
         const newInputs = proposal.inputs.slice(0, -1);
         newProposals[proposalIndex] = {
           ...proposal,
-          inputs: newInputs
+          inputs: newInputs,
         };
         return newProposals;
       });
@@ -210,23 +207,23 @@ const App = () => {
   };
 
   const updateInputInProposal = (proposalIndex, inputIndex, newInput) => {
-    setProposals(prev => {
+    setProposals((prev) => {
       const newProposals = [...prev];
       const proposal = newProposals[proposalIndex];
       const newInputs = [...proposal.inputs];
       newInputs[inputIndex] = newInput;
       newProposals[proposalIndex] = {
         ...proposal,
-        inputs: newInputs
+        inputs: newInputs,
       };
       return newProposals;
     });
   };
 
   const setProcessData = useCallback((proposalIndex, newProcessData) => {
-    setProposals(prev => prev.map((proposal, index) =>
-      index === proposalIndex ? { ...proposal, processData: newProcessData } : proposal
-    ));
+    setProposals((prev) =>
+      prev.map((proposal, index) => (index === proposalIndex ? { ...proposal, processData: newProcessData } : proposal))
+    );
   }, []);
 
   const handleInflationRateChange = (value) => {
@@ -241,26 +238,12 @@ const App = () => {
     }
   };
 
-  proposals.forEach((proposal, index) => {
-    // console.log(`Proposal ${index + 1}:`);
-    // console.log(`  Target age: ${proposal.target.age}`);
-    // console.log(`  Target numberOfYears: ${proposal.target.numberOfYears}`);
-    // console.log(`  Target currencyRate: ${proposal.target.currencyRate}`);
-    // console.log(`  Target inflationRate: ${proposal.target.inflationRate}`);
-    // proposal.inputs.forEach((input, idx) => {
-    //   console.log(`  Input ${idx + 1}:`);
-    //   console.log(`    Expense Type: ${input.expenseType}`);
-    //   console.log(`    From Age: ${input.fromAge}`);
-    //   console.log(`    To Age: ${input.toAge}`);
-    // });
-  });
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="fixed" sx={{ width: '100%', backgroundColor: appBarColor }}>
         <Toolbar>
-          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => { window.location.href = "https://portal.aimarketings.io/tool-list/"; }}>
+          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => { window.location.href = 'https://portal.aimarketings.io/tool-list/'; }}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
@@ -297,7 +280,7 @@ const App = () => {
                 disabled={finalNotionalAmount !== null}
                 selectedCurrency={selectedCurrency}
                 company={company}
-                
+                notionalAmount={notionalAmount} // Pass notionalAmount to Proposal
               />
             ))}
           </Grid>
@@ -326,16 +309,10 @@ const App = () => {
                 IsProduction_Login={IsProduction_Login}
                 selectedCurrency={selectedCurrency}
                 proposals={proposals}
+                setProposals={setProposals} // Pass setProposals
+                setNotionalAmount={setNotionalAmount} // Pass setNotionalAmount
+                notionalAmount={notionalAmount} 
               />
-            </Card>
-            <Card elevation={3} sx={{ mt: 2, p: 2 }}>
-              {proposals.map((proposal, proposalIndex) => (
-                <OutputForm_1
-                  key={proposalIndex}
-                  proposal={proposal}
-                  selectedCurrency={selectedCurrency}
-                />
-              ))}
             </Card>
             <Card elevation={3} sx={{ mt: 2, p: 2 }}>
               {proposals.map((proposal, proposalIndex) => (
