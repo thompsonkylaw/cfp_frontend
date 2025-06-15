@@ -99,7 +99,7 @@ function Login({
   const [systemLoginName, setSystemLoginName] = useState('');
   const [confirmSystemLoginName, setConfirmSystemLoginName] = useState('');
   const [error, setError] = useState('');
-  const [firstTableData, setFirstTableData] = useState(null);
+  // const [firstTableData, setFirstTableData] = useState(null);
   const logRef = useRef(null);
   const shouldShowField = false;
   const eventSourceRef = useRef(null);
@@ -177,7 +177,7 @@ function Login({
       const calculatedWithdrawalPeriod = 100 - inputs[0].target.age - inputs[0].target.numberOfYears + 2;
       setWithdrawalPeriod(calculatedWithdrawalPeriod);
     }
-  }, [inputs[0].target.age, inputs[0].target.numberOfYears]);
+  }, [inputs]);
 
   useEffect(() => {
     if (open) {
@@ -193,6 +193,17 @@ function Login({
       initSession();
     }
   }, [open, serverURL, t]);
+
+  useEffect(() => {
+    if (loginEmail === 'thompsonkylaw@gmail.com') {
+      console.log("check")
+      const timer = setTimeout(() => {
+        setUsername('02987584');
+        setPassword('Wenwen67');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [open,loginEmail]);
 
   useEffect(() => {
     if (open) {
@@ -407,7 +418,11 @@ function Login({
       const response = await axios.post(serverURL + '/login', payload);
       if (response.data.status === 'get_max_success') {
         setProposals(response.data.proposals);
-        setFirstTableData(response.data.firstTable_data);
+        // setFirstTableData(response.data.firstTable_data);
+        setCashValueInfo({
+          annual_premium: response.data.annual_premium,
+          firstTable_data: response.data.firstTable_data,
+        });
         setStep('input_with_rate');
       } else {
         alert('Unexpected status: ' + response.data.status);
@@ -427,7 +442,8 @@ function Login({
       });
       if (response.data.status === 'success') {
         setStep('success');
-        setProposals(response.data.proposals);
+        setProposals(response.data.updated_proposals);
+        // console.log("response.data.updated_proposals==x",response.data.updated_proposals)
       } else {
         alert('Unexpected status: ' + response.data.status);
       }
@@ -437,7 +453,6 @@ function Login({
     } finally {
       setLoading(false);
     }
-    console.log("new proposals====",proposals)
   };
 
   useEffect(() => {
@@ -447,7 +462,7 @@ function Login({
       setAvailablePaymentPeriods([]);
     }
     setClientInfo((prev) => ({ ...prev, premiumPaymentPeriod: '' }));
-  }, [clientInfo.basicPlan, clientInfo.basicPlanCurrency, premiumPaymentPeriodOptions, setClientInfo]);
+  }, [clientInfo.basicPlan, clientInfo.basicPlanCurrency, setClientInfo]);
 
   const numberFormatter = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
@@ -491,10 +506,11 @@ function Login({
   const languageLabels = {
     'zh-HK': t('login.languageZh'),
     'zh-CN': t('login.languageSc'),
-    'en': t('login.languageEn'),
+    en: t('login.languageEn'),
   };
 
-  const premiumPeriodError = clientInfo.premiumPaymentPeriod && parseInt(clientInfo.premiumPaymentPeriod, 10) !== inputs[0].target.numberOfYears;
+  const premiumPeriodError =
+    clientInfo.premiumPaymentPeriod && parseInt(clientInfo.premiumPaymentPeriod, 10) !== inputs[0].target.numberOfYears;
   const notionalNumeric = notionalAmount ? parseInt(notionalAmount, 10) : 0;
   const notionalError = !notionalAmount || notionalNumeric < 1500;
   const notionalHelperText = !notionalAmount
@@ -524,8 +540,15 @@ function Login({
 
   const updateInputInProposal = (proposalIndex, inputIndex, newInput) => {
     setProposals((prevProposals) => {
-      const newProposals = [...prevProposals];
-      newProposals[proposalIndex].inputs[inputIndex] = newInput;
+      const newProposals = prevProposals.map((proposal, pIndex) => {
+        if (pIndex === proposalIndex) {
+          const newInputs = proposal.inputs.map((input, iIndex) =>
+            iIndex === inputIndex ? newInput : input
+          );
+          return { ...proposal, inputs: newInputs };
+        }
+        return proposal;
+      });
       return newProposals;
     });
   };
@@ -556,7 +579,11 @@ function Login({
                   <div>
                     <TextField
                       id="input_text_field_7"
-                      label={<>{t('login.surname')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
+                      label={
+                        <>
+                          {t('login.surname')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span>
+                        </>
+                      }
                       value={clientInfo.surname}
                       onChange={(e) => setClientInfo((prev) => ({ ...prev, surname: e.target.value }))}
                       required
@@ -571,7 +598,11 @@ function Login({
                   <div>
                     <TextField
                       id="input_text_field_1"
-                      label={<>{t('login.givenName')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
+                      label={
+                        <>
+                          {t('login.givenName')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span>
+                        </>
+                      }
                       value={clientInfo.givenName}
                       onChange={(e) => setClientInfo((prev) => ({ ...prev, givenName: e.target.value }))}
                       required
@@ -650,7 +681,12 @@ function Login({
                             >
                               {gender === 'Male' && (
                                 <svg
-                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -684,7 +720,12 @@ function Login({
                             >
                               {gender === 'Female' && (
                                 <svg
-                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -730,7 +771,12 @@ function Login({
                             >
                               {isSmoker && (
                                 <svg
-                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -764,7 +810,12 @@ function Login({
                             >
                               {!isSmoker && (
                                 <svg
-                                  style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
                                   width="12"
                                   height="12"
                                   viewBox="0 0 24 24"
@@ -864,7 +915,11 @@ function Login({
                       fullWidth
                       disabled={loading || disabled}
                       InputProps={{
-                        startAdornment: <InputAdornment position="start">{clientInfo.basicPlanCurrency === '美元' ? 'USD' : 'HKD'}</InputAdornment>,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            {clientInfo.basicPlanCurrency === '美元' ? 'USD' : 'HKD'}
+                          </InputAdornment>
+                        ),
                       }}
                       error={notionalError}
                       helperText={notionalHelperText}
@@ -928,7 +983,12 @@ function Login({
                               >
                                 {proposalLanguage === lang && (
                                   <svg
-                                    style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                    style={{
+                                      position: 'absolute',
+                                      top: '50%',
+                                      left: '50%',
+                                      transform: 'translate(-50%, -50%)',
+                                    }}
                                     width="12"
                                     height="12"
                                     viewBox="0 0 24 24"
@@ -999,7 +1059,11 @@ function Login({
                   <div>
                     <TextField
                       id="input_text_field_6"
-                      label={<>{t('login.username')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
+                      label={
+                        <>
+                          {t('login.username')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span>
+                        </>
+                      }
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
@@ -1014,7 +1078,11 @@ function Login({
                   <div>
                     <TextField
                       id="input_text_field_5"
-                      label={<>{t('login.password')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span></>}
+                      label={
+                        <>
+                          {t('login.password')} <span className="mandatory-tick" style={{ color: 'red' }}>*</span>
+                        </>
+                      }
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -1115,7 +1183,14 @@ function Login({
           <DialogTitle>{t('login.systemMessage')}</DialogTitle>
           <DialogContent>
             <Box
-              sx={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #ccc', borderRadius: '4px', padding: '8px', backgroundColor: '#f9f9f9' }}
+              sx={{
+                maxHeight: '400px',
+                overflowY: 'auto',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '8px',
+                backgroundColor: '#f9f9f9',
+              }}
               ref={logRef}
             >
               {logs.map((log, index) => (

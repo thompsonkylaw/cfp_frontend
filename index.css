@@ -112,9 +112,18 @@
   
   /* Default styles for larger screens */
   .app-bar {
+    position: fixed;
+    top: 0;
     width: 100%;
   }
-  
+  body.admin-bar .app-bar {
+  top: 32px;
+}
+@media screen and (max-width: 782px) {
+  body.admin-bar .app-bar {
+    top: 46px;
+  }
+}
   .component {
     width: 100%;
     max-width: 400px; /* Adjust based on your needs */

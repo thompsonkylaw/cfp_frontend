@@ -1,15 +1,6 @@
-//2
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Box,
-  Collapse,
-  FormControlLabel,
-  IconButton,
-  Switch,
-  TextField,
-  Typography
-} from '@mui/material';
+import { Box, Collapse, FormControlLabel, IconButton, Switch, TextField, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import Login_Manulife from './Login_Manulife';
 import Login_FWD from './Login_FWD';
@@ -19,16 +10,15 @@ import Login_Chubb from './Login_Chubb';
 import Login_Sunlife from './Login_Sunlife';
 import Login_AIA from './Login_AIA';
 
-const UseInflation = ({ 
+const UseInflation = ({
   inflationRate,
   currencyRate,
   useInflation,
-  setUseInflation,  
+  setUseInflation,
   onInflationRateChange,
   onCurrencyRateChange,
-  processedData,
+  processData,
   inputs,
-  proposalIndex,
   company,
   cashValueInfo,
   setCashValueInfo,
@@ -39,33 +29,27 @@ const UseInflation = ({
   setfilename,
   setFinalNotionalAmount,
   setProposals,
-  numberOfYearAccMP,
-  
   clientInfo,
   setClientInfo,
   IsProduction_Login,
   proposals,
   notionalAmount,
   setNotionalAmount,
-  
 }) => {
-  
   const { t } = useTranslation();
   const [openLoginModal, setOpenLoginModal] = useState(false);
 
-  // Define a mapping of company names to their login components
   const loginComponents = {
-    'Manulife': Login_Manulife,
-    'FWD': Login_FWD,
-    'AXA': Login_AXA,
-    'Prudential': Login_Prudential,
-    'Chubb': Login_Chubb,
-    'Sunlife': Login_Sunlife,
-    'AIA': Login_AIA
+    Manulife: Login_Manulife,
+    FWD: Login_FWD,
+    AXA: Login_AXA,
+    Prudential: Login_Prudential,
+    Chubb: Login_Chubb,
+    Sunlife: Login_Sunlife,
+    AIA: Login_AIA,
   };
 
-  // Select the login component based on the company prop, defaulting to Login
-  const SelectedLogin = loginComponents[company] || Login;
+  const SelectedLogin = loginComponents[company] || Login_Prudential;
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -73,51 +57,44 @@ const UseInflation = ({
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           {t('useInflation.title')}
         </Typography>
-        <IconButton 
+        <IconButton
           onClick={(e) => {
             setOpenLoginModal(true);
-            e.currentTarget.blur(); // Remove focus to make the circle disappear
+            e.currentTarget.blur();
           }}
-          sx={{ 
+          sx={{
             color: 'primary.main',
-            '&:hover': {
-              backgroundColor: 'action.hover'
-            }
+            '&:hover': { backgroundColor: 'action.hover' },
           }}
         >
           <EditIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      {/* Render the dynamically selected login component */}
       <SelectedLogin
         open={openLoginModal}
         onClose={() => setOpenLoginModal(false)}
-        processedData={processedData}
+        processData={processData}
         inputs={inputs}
         clientInfo={clientInfo}
         setClientInfo={setClientInfo}
-
-        numberOfYearAccMP={numberOfYearAccMP}
         useInflation={useInflation}
         setFinalNotionalAmount={setFinalNotionalAmount}
         disabled={disabled}
         cashValueInfo={cashValueInfo}
         setCashValueInfo={setCashValueInfo}
-        // clientInfo={processedData}
-        // setClientInfo={setClientInfo}
         company={company}
-        IsProduction_Login = {IsProduction_Login}
+        IsProduction_Login={IsProduction_Login}
         pdfBase64={pdfBase64}
         setpdfBase64={setpdfBase64}
         filename={filename}
         setfilename={setfilename}
         proposals={proposals}
-        notionalAmount={notionalAmount} 
-        setNotionalAmount={setNotionalAmount} 
+        notionalAmount={notionalAmount}
+        setNotionalAmount={setNotionalAmount}
         setProposals={setProposals}
       />
-      
+
       <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 2 }}>
         <FormControlLabel
           control={
@@ -135,7 +112,7 @@ const UseInflation = ({
           }
           sx={{ mb: 1 }}
         />
-        
+
         <Collapse in={useInflation}>
           <TextField
             id="input_text_field_8"

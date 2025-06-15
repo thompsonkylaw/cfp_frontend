@@ -1,44 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Typography, Select, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
   const { t } = useTranslation();
-  const [rates, setRates] = useState(proposal.inputs.map(() => 1)); // Default to 1% for each input
+  const [rates, setRates] = useState(proposal.inputs.map((input) => input.annualDividendRate || 1));
 
-  // Calculate maximum rates and available rates for each input
-  const maxRates = proposal.inputs.map((input) =>
-    notionalAmount > 0 ? (input.maxAmountWithdrawYearly / notionalAmount) * 100 : 0
-  );
-  const availableRatesArray = maxRates.map((maxRate) =>
-    maxRate >= 1 ? Array.from({ length: Math.floor(maxRate) }, (_, i) => i + 1) : []
+  const maxRates = useMemo(
+    () =>
+      proposal.inputs.map((input) =>
+        notionalAmount > 0 ? (input.maxAmountWithdrawYearly / notionalAmount) * 100 : 0
+      ),
+    [proposal.inputs, notionalAmount]
   );
 
-  // Adjust rates to maximum available rates if current rates are invalid
+  const availableRatesArray = useMemo(
+    () =>
+      maxRates.map((maxRate) =>
+        maxRate >= 1 ? Array.from({ length: Math.floor(maxRate) }, (_, i) => i + 1) : []
+      ),
+    [maxRates]
+  );
+
   useEffect(() => {
-    setRates((prevRates) =>
-      prevRates.map((rate, index) => {
-        const availableRates = availableRatesArray[index];
-        if (availableRates.length > 0) {
-          if (!availableRates.includes(rate)) {
-            return availableRates[availableRates.length - 1]; // Set to maximum available rate
-          }
-          return rate;
+    const newRates = rates.map((rate, index) => {
+      const availableRates = availableRatesArray[index];
+      if (availableRates.length > 0) {
+        if (!availableRates.includes(rate)) {
+          return availableRates[availableRates.length - 1];
         }
-        return 0;
-      })
-    );
-  }, [availableRatesArray]);
+        return rate;
+      }
+      return 0;
+    });
 
-  // Compute amounts based on selected rates and update inputs
+    if (!newRates.every((rate, index) => rate === rates[index])) {
+      setRates(newRates);
+    }
+  }, [availableRatesArray, rates]);
+
   useEffect(() => {
     proposal.inputs.forEach((input, index) => {
-      const computedAmount = notionalAmount > 0 ? (rates[index] / 100) * notionalAmount : 0;
-      updateInput(index, { ...input, amountWithdrawYearly: computedAmount });
+      const selectedRate = rates[index];
+      const computedAmount = notionalAmount > 0 ? Math.round((selectedRate / 100) * notionalAmount * 100) / 100 : 0;
+      if (
+        computedAmount !== input.amountWithdrawYearly ||
+        selectedRate !== input.annualDividendRate
+      ) {
+        updateInput(index, {
+          ...input,
+          amountWithdrawYearly: computedAmount,
+          annualDividendRate: selectedRate,
+        });
+      }
     });
   }, [rates, notionalAmount, updateInput, proposal.inputs]);
 
-  // Handle rate change for a specific input
   const handleRateChange = (index, value) => {
     setRates((prevRates) => {
       const newRates = [...prevRates];
@@ -47,7 +64,6 @@ const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
     });
   };
 
-  // Format number with commas
   const formatNumber = (num) => num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
   return (
@@ -65,12 +81,7 @@ const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
                 {t('Start Withdrawal Year')}
               </Typography>
             )}
-            <TextField
-              fullWidth
-              variant="standard"
-              value={input.startWithdrawalYear || ''}
-              disabled={true}
-            />
+            <TextField fullWidth variant="standard" value={input.startWithdrawalYear || ''} disabled={true} />
           </Box>
           <Box>
             {index === 0 && (
@@ -78,12 +89,7 @@ const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
                 {t('Withdraw Number of Years')}
               </Typography>
             )}
-            <TextField
-              fullWidth
-              variant="standard"
-              value={input.withdrawNumberOfYear || ''}
-              disabled={true}
-            />
+            <TextField fullWidth variant="standard" value={input.withdrawNumberOfYear || ''} disabled={true} />
           </Box>
           <Box>
             {index === 0 && (
@@ -94,7 +100,7 @@ const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
             <TextField
               fullWidth
               variant="standard"
-              value={input.maxAmountWithdrawYearly ? formatNumber(input.maxAmountWithdrawYearly.toFixed(2)) : '0'}
+              value={input.maxAmountWithdrawYearly ? formatNumber(input.maxAmountWithdrawYearly.toFixed(0)) : '0'}
               disabled={true}
               InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
             />
@@ -108,7 +114,7 @@ const InputWithRate = ({ proposal, notionalAmount, updateInput, disabled }) => {
             <TextField
               fullWidth
               variant="standard"
-              value={formatNumber((notionalAmount * (rates[index] / 100)).toFixed(2))}
+              value={formatNumber((notionalAmount * (rates[index] / 100)).toFixed(0))}
               disabled={true}
               InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
             />

@@ -25,6 +25,11 @@ i18next
     resources: {
       en: {
         translation: {
+          "View Proposal Info": "View Proposal Info",
+          "Download File" : "Download File",
+          "Download": "Download",
+          "Submit": "Submit",
+          "Close": "Close",
           "Start Withdrawal Year":"Start Withdrawal Year",
           "Withdraw Number of Years": "Withdraw # of Yrs",
           'Max Amount Withdraw Yearly': 'Max $ Withdraw Yearly',
@@ -49,7 +54,7 @@ i18next
           welcome: 'Welcome',
           greeting: 'Hello, {{name}}!',
           Yearth: 'Year {{year}}',
-          "Medical Financial Calculator": "Education Fund Planner",
+          "Medical Financial Calculator": "Financial Planner",
           medicalTotal: '{{years}}th Year Medical Ins Total ({{currency}}): {{total}}',
           Company: "Insurance Company",
           Plan: 'Plan',
@@ -234,6 +239,11 @@ i18next
       },
       "zh-HK": {
         translation: {
+          "View Proposal Info": "檢視內容",
+          "Download File" : "下載檔案",
+          "Download": "下載",
+          "Submit": "提交",
+          "Close": "關閉",
           "Start Withdrawal Year":"從第幾年提取",
           "Withdraw Number of Years": "共提取多少年",
           'Max Amount Withdraw Yearly': '最多每年提取',
@@ -260,7 +270,7 @@ i18next
           welcome: '歡迎',
           greeting: '你好, {{name}}!',
           Yearth: '第{{year}}年',
-          "Medical Financial Calculator": "教育基金計算器",
+          "Medical Financial Calculator": "財富管理",
           medicalTotal: '第{{years}}年醫療保險總額（{{currency}}）：{{total}}',
           Company: "保險公司",
           Plan: '計劃',
@@ -449,6 +459,11 @@ i18next
       },
       "zh-CN": {
         translation: {
+          "View Proposal Info": "检视内容",
+          "Download File" : "下载档案",
+          "Download": "下载",
+          "Submit": "提交",
+          "Close": "关闭",
           "Account Balance" : "戶口餘額",
           "Start Withdrawal Year":"从第几年提取",
           "Withdraw Number of Years": "共提取多少年",
@@ -474,7 +489,7 @@ i18next
           welcome: '欢迎',
           greeting: '你好, {{name}}!',
           Yearth: '第{{year}}年',
-          "Medical Financial Calculator": "教育基金计算器",
+          "Medical Financial Calculator": "财富管理",
           medicalTotal: '第{{years}}年医疗保险总额（{{currency}}）：{{total}}',
           Company: "保险公司",
           Plan: '计划',

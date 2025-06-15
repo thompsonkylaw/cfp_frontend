@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
@@ -7,47 +7,33 @@ const numberFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-const ProposalInfo = ({ open, onClose, cashValueInfo, selectedCurrency, proposal }) => {
+const ProposalInfo = ({ open, onClose, cashValueInfo, proposal }) => {
   const { t } = useTranslation();
-  console.log("cashValueTable=\n", cashValueInfo.cashValueTable);
   const currencyRate = proposal.target.currencyRate;
   const age = proposal.target.age;
   const numberOfPayments = proposal.target.numberOfYears;
   const annualPremiumClean = String(cashValueInfo.annual_premium).replace(/,/g, '');
+  
+  console.log("cashValueInfo.annual_premium===",cashValueInfo.annual_premium);
+  console.log("firstTableData===",cashValueInfo.firstTable_data);
+  console.log("proposal",proposal);
+
   const annualPremium = parseFloat(annualPremiumClean);
   const cashValueTable = cashValueInfo.cashValueTable;
 
-  const inputs = proposal.inputs.map(item => ({
-    expenseType: item.expenseType,
-    fromAge: Number(item.fromAge),
-    toAge: Number(item.toAge),
-    yearlyWithdrawalAmount: parseFloat(String(item.yearlyWithdrawalAmount).replace(/,/g, '')),
-}));
+  const inputs = proposal.inputs.map((item) => ({
+    startWithdrawalYear: Number(item.startWithdrawalYear),
+    withdrawNumberOfYear: Number(item.withdrawNumberOfYear),
+    amountWithdrawYearly: Number(item.amountWithdrawYearly),
+    annualDividendRate: Number(item.annualDividendRate),
+    accountBalance: Number(item.accountBalance),
+  }));
 
   const firstTableData = cashValueInfo.firstTable_data || [];
-
-  // Parse cashValueTable into an array of rows
   const cashValueRows = cashValueTable ? cashValueTable.split('\n') : [];
-
-  const getCurrencySymbol = (currency) => {
-    switch (currency) {
-      case 'USD':
-        return '$';
-      case 'HKD':
-        return 'HK$';
-      case 'RMB':
-        return '¥';
-      default:
-        return '';
-    }
-  };
-
-  const currencySymbol = getCurrencySymbol(selectedCurrency);
-  const startingAge = firstTableData.length > 0 ? firstTableData[0][0] : 0;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      {/* <DialogTitle>{t('proposalInfo.title')}</DialogTitle> */}
       <DialogContent>
         {/* Summary Table */}
         <TableContainer component={Paper} sx={{ mb: 4 }}>
@@ -56,8 +42,8 @@ const ProposalInfo = ({ open, onClose, cashValueInfo, selectedCurrency, proposal
               <TableRow sx={{ backgroundColor: '#956251' }}>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }}>{t('common.age')}</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }}>{t('proposalInfo.numberOfPayments')}</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.annualPremium')} ({'美元'})</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.totalPremiumsPaidUpToYear')} ({'美元'})</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.annualPremium')} (USD)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.totalPremiumsPaidUpToYear')} (USD)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -77,7 +63,7 @@ const ProposalInfo = ({ open, onClose, cashValueInfo, selectedCurrency, proposal
             <TableHead>
               <TableRow sx={{ backgroundColor: '#ddd3d0' }}>
                 <TableCell sx={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }}>{t('proposalInfo.age')}</TableCell>
-                <TableCell sx={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.cashValue')} ({'美元'})</TableCell>
+                <TableCell sx={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.cashValue')} (USD)</TableCell>
                 <TableCell sx={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.profitFactor')}</TableCell>
                 <TableCell sx={{ color: 'black', fontWeight: 'bold', fontSize: '1.5rem' }} align="right">{t('proposalInfo.irr')}</TableCell>
               </TableRow>
@@ -140,66 +126,39 @@ const ProposalInfo = ({ open, onClose, cashValueInfo, selectedCurrency, proposal
           </Table>
         </TableContainer>
 
-        {/* Second Table - Modified to loop through inputs */}
+        {/* Second Table */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#9b2d1f' }}>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.4rem' }}>{t('proposalInfo.expenseType')}</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.4rem' }}>{t('proposalInfo.ageRange')}</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.4rem' }} align="right">{t('proposalInfo.yearlyWithdrawalAmount')} ({'美元'})</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.4rem' }} align="right">{t('proposalInfo.sumOfWithdrawal')} ({'美元'})</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.4rem' }} align="right">{t('proposalInfo.lastYearWithdrawalCashValue')} ({'美元'})</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>{t('Start Withdrawal Year')}</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>{t('Withdraw Number of Years')}</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }} align="right">{t('Amount Withdraw Yearly')} (USD)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }} align="right">{t('Annual Dividend Rate')} (USD)</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }} align="right">{t('Account Balance')} (USD)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {inputs.map((input, index) => {
-                const expenseType = input.expenseType ? t(`expenseTypes.${input.expenseType}`) : ' ';
-                // console.log("input.expenseType============", input.expenseType);
-                const ageRange = (Number.isFinite(input.fromAge) && Number.isFinite(input.toAge)) ? `${input.fromAge} - ${input.toAge}` : ' ';
-                // console.log("input.fromAge============", input.fromAge);
-                // console.log("input.toAge============", input.toAge);
-                const yearlyWithdrawalAmount = Number.isFinite(input.yearlyWithdrawalAmount) ? numberFormatter.format(input.yearlyWithdrawalAmount) : ' ';
-                // console.log("input.yearlyWithdrawalAmount============", input.yearlyWithdrawalAmount);
-                const numberOfYears = (Number.isFinite(input.fromAge) && Number.isFinite(input.toAge)) ? (input.toAge - input.fromAge + 1) : 0;
-                // console.log("numberOfYears============", numberOfYears);
-                const sumOfWithdrawal = Number.isFinite(input.yearlyWithdrawalAmount) && numberOfYears > 0 ? numberFormatter.format(input.yearlyWithdrawalAmount * numberOfYears) : '0';
-                // console.log("input.yearlyWithdrawalAmount============", input.yearlyWithdrawalAmount);
-                //before last row
-                // Calculate lastYearCashValue using input.toAge - age + 1 as index
-                let lastYearCashValue = '0';
-                let targetRow;
+                const startWithdrawalYear = input.startWithdrawalYear;
+                const withdrawNumberOfYear = input.withdrawNumberOfYear;
+                const amountWithdrawYearly = input.amountWithdrawYearly;
+                const annualDividendRate = input.annualDividendRate;
+                const accountBalance = input.accountBalance;
 
-                if (input.toAge === 100) {
-                  if (cashValueRows.length > 0) {
-                    targetRow = cashValueRows[cashValueRows.length - 1];
-                  }
-                } else {
-                  const rowIndex = String(input.toAge - age + 1);
-                  targetRow = cashValueRows.find(row => {
-                    const columns = row.split('~');
-                    return columns.length >= 2 && columns[0].trim() === rowIndex;
-                  });
-                }
+                console.log("startWithdrawalYear=",startWithdrawalYear);
+                console.log("withdrawNumberOfYear=",withdrawNumberOfYear);
+                console.log("amountWithdrawYearly=",amountWithdrawYearly);
+                console.log("annualDividendRate=",annualDividendRate);
+                console.log("accountBalance=",accountBalance);
 
-                if (targetRow) {
-                  const columns = targetRow.split('~');
-                  if (columns.length >= 2) {
-                    const lastColumn = columns[columns.length - 1].trim();
-                    const cashValueStr = lastColumn.replace(/,/g, '');
-                    const cashValue = parseFloat(cashValueStr);
-                    if (!isNaN(cashValue)) {
-                      lastYearCashValue = numberFormatter.format(cashValue);
-                    }
-                  }
-                }
                 return (
                   <TableRow key={index} sx={{ backgroundColor: '#efeae9' }}>
-                    <TableCell sx={{ fontSize: '1.2rem' }}>{expenseType}</TableCell>
-                    <TableCell sx={{ fontSize: '1.2rem' }}>{ageRange}</TableCell>
-                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{yearlyWithdrawalAmount}</TableCell>
-                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{sumOfWithdrawal}</TableCell>
-                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{lastYearCashValue}</TableCell>
+                    <TableCell sx={{ fontSize: '1.2rem' }}>{startWithdrawalYear}</TableCell>
+                    <TableCell sx={{ fontSize: '1.2rem' }}>{withdrawNumberOfYear}</TableCell>
+                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{numberFormatter.format(amountWithdrawYearly)}</TableCell>
+                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{`${(annualDividendRate)}%`}</TableCell>
+                    <TableCell sx={{ fontSize: '1.2rem' }} align="right">{numberFormatter.format(accountBalance)}</TableCell>
                   </TableRow>
                 );
               })}

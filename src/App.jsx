@@ -1,5 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ThemeProvider, createTheme, AppBar, Toolbar, IconButton, Typography, Container, Grid, Box, Card } from '@mui/material';
+import {
+  ThemeProvider,
+  createTheme,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Container,
+  Grid,
+  Box,
+  Card,
+} from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useTranslation } from 'react-i18next';
@@ -9,21 +20,31 @@ import LanguageSwitch from './LanguageSwitch';
 import OutputForm_2 from './OutputForm_2';
 import OutputForm_3 from './OutputForm_3';
 
-
 const theme = createTheme({
   palette: { primary: { main: '#1976d2' }, secondary: { main: '#dc004e' } },
   typography: { fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif' },
 });
 
 const App = () => {
-  const IsProduction_Login = true;
+  const IsProduction_Login = false;
   const { t } = useTranslation();
-  
+
   const [proposals, setProposals] = useState(() => {
     const saved = localStorage.getItem('proposals');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return parsed.map((proposal) => ({
+          ...proposal,
+          inputs: proposal.inputs.map((input) => ({
+            ...input,
+            maxAmountWithdrawYearly: 0,
+            accountBalance: 0,
+            amountWithdrawYearly: 0,
+            pdf_base64: '',
+            filename: '',
+          })),
+        }));
       } catch (e) {
         console.error('Error parsing saved proposals:', e);
       }
@@ -31,7 +52,18 @@ const App = () => {
     return [
       {
         target: { age: 6, numberOfYears: 5, currencyRate: 7.85, inflationRate: 1 },
-        inputs: [{ startWithdrawalYear: '6', withdrawNumberOfYear: '30', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' }],
+        inputs: [
+          {
+            startWithdrawalYear: '6',
+            withdrawNumberOfYear: '30',
+            maxAmountWithdrawYearly: 0,
+            accountBalance: 0,
+            amountWithdrawYearly: 0,
+            annualDividendRate: 1,
+            pdf_base64: '',
+            filename: '',
+          },
+        ],
       },
     ];
   });
@@ -49,25 +81,7 @@ const App = () => {
     return 1;
   });
 
-  const [selectedCurrency, setSelectedCurrency] = useState(() => {
-    const saved = localStorage.getItem('selectedCurrency');
-    return saved ? saved : 'HKD';
-  });
-
-  const [hkdRate, setHkdRate] = useState(() => {
-    const saved = localStorage.getItem('hkdRate');
-    return saved ? parseFloat(saved) : 7.85;
-  });
-
-  const [rmbRate, setRmbRate] = useState(() => {
-    const saved = localStorage.getItem('rmbRate');
-    return saved ? parseFloat(saved) : 7.0;
-  });
-
-  const currencyRate = selectedCurrency === 'HKD' ? hkdRate : rmbRate;
-
   const [useInflation, setUseInflation] = useState(false);
-
   const [appBarColor, setAppBarColor] = useState(() => {
     const savedColor = localStorage.getItem('appBarColor');
     return savedColor ? savedColor : 'green';
@@ -79,7 +93,7 @@ const App = () => {
   });
 
   const [finalNotionalAmount, setFinalNotionalAmount] = useState(null);
-  const [notionalAmount, setNotionalAmount] = useState('400000'); // New state for notionalAmount
+  const [notionalAmount, setNotionalAmount] = useState('400000');
   const [cashValueInfo, setCashValueInfo] = useState({
     age_1: 65,
     age_2: 85,
@@ -99,21 +113,18 @@ const App = () => {
     premiumPaymentPeriod: '15',
     basicPlanCurrency: '美元',
   });
-  const [pdfBase64, setpdfBase64] = useState();
-  const [filename, setfilename] = useState();
+  const [pdfBase64, setpdfBase64] = useState('');
+  const [filename, setfilename] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('proposals', JSON.stringify(proposals));
+    const filteredProposals = proposals.map((proposal) => ({
+      ...proposal,
+      inputs: proposal.inputs.map(
+        ({ maxAmountWithdrawYearly, accountBalance, amountWithdrawYearly, annualDividendRate, ...rest }) => rest
+      ),
+    }));
+    localStorage.setItem('proposals', JSON.stringify(filteredProposals));
   }, [proposals]);
-
-  useEffect(() => {
-    setProposals((prevProposals) =>
-      prevProposals.map((proposal) => ({
-        ...proposal,
-        target: { ...proposal.target, currencyRate },
-      }))
-    );
-  }, [currencyRate]);
 
   useEffect(() => {
     setProposals((prevProposals) =>
@@ -132,25 +143,24 @@ const App = () => {
     localStorage.setItem('company', company);
   }, [company]);
 
-  useEffect(() => {
-    localStorage.setItem('selectedCurrency', selectedCurrency);
-  }, [selectedCurrency]);
-
-  useEffect(() => {
-    localStorage.setItem('hkdRate', hkdRate);
-  }, [hkdRate]);
-
-  useEffect(() => {
-    localStorage.setItem('rmbRate', rmbRate);
-  }, [rmbRate]);
-
   const addProposal = () => {
     if (proposals.length < 6) {
       setProposals([
         ...proposals,
         {
-          target: { age: 5, numberOfYears: 15, currencyRate: currencyRate, inflationRate: inflationRate },
-          inputs: [{ startWithdrawalYear: '', withdrawNumberOfYear: '', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' }],
+          target: { age: 5, numberOfYears: 15, currencyRate: 7.85, inflationRate },
+          inputs: [
+            {
+              startWithdrawalYear: '',
+              withdrawNumberOfYear: '',
+              maxAmountWithdrawYearly: 0,
+              accountBalance: 0,
+              amountWithdrawYearly: 0,
+              annualDividendRate: 1,
+              pdf_base64: '',
+              filename: '',
+            },
+          ],
         },
       ]);
     }
@@ -180,7 +190,16 @@ const App = () => {
         const proposal = newProposals[proposalIndex];
         const newInputs = [
           ...proposal.inputs,
-          { startWithdrawalYear: '', withdrawNumberOfYear: '', maxAmountWithdrawYearly: '0', accountBalance: '0', amountWithdrawYearly: '0' },
+          {
+            startWithdrawalYear: '',
+            withdrawNumberOfYear: '',
+            maxAmountWithdrawYearly: 0,
+            accountBalance: 0,
+            amountWithdrawYearly: 0,
+            annualDividendRate: 1,
+            pdf_base64: '',
+            filename: '',
+          },
         ];
         newProposals[proposalIndex] = {
           ...proposal,
@@ -220,30 +239,43 @@ const App = () => {
     });
   };
 
-  const setProcessData = useCallback((proposalIndex, newProcessData) => {
-    setProposals((prev) =>
-      prev.map((proposal, index) => (index === proposalIndex ? { ...proposal, processData: newProcessData } : proposal))
-    );
-  }, []);
+  const setProcessData = useCallback(
+    (proposalIndex, newProcessData) => {
+      setProposals((prev) =>
+        prev.map((proposal, index) =>
+          index === proposalIndex ? { ...proposal, processData: newProcessData } : proposal
+        )
+      );
+    },
+    []
+  );
 
   const handleInflationRateChange = (value) => {
     setInflationRate(value);
   };
 
   const handleCurrencyRateChange = (value) => {
-    if (selectedCurrency === 'HKD') {
-      setHkdRate(value);
-    } else {
-      setRmbRate(value);
-    }
+    setProposals((prevProposals) =>
+      prevProposals.map((proposal) => ({
+        ...proposal,
+        target: { ...proposal.target, currencyRate: value },
+      }))
+    );
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="fixed" sx={{ width: '100%', backgroundColor: appBarColor }}>
+      <AppBar position="static" sx={{ width: '100%', backgroundColor: appBarColor }}>
         <Toolbar>
-          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => { window.location.href = 'https://portal.aimarketings.io/tool-list/'; }}>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="back"
+            onClick={() => {
+              window.location.href = 'https://portal.aimarketings.io/tool-list/';
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
@@ -251,7 +283,7 @@ const App = () => {
           </Typography>
         </Toolbar>
       </AppBar>
-      <Container sx={{ mt: 10, mb: 4 }}>
+      <Container sx={{ mt: 0, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
           <IconButton onClick={addProposal} sx={proposals.length >= 1 ? { display: 'none' } : {}}>
             <AddIcon />
@@ -274,13 +306,12 @@ const App = () => {
                 removeInput={() => removeInputFromProposal(proposalIndex)}
                 updateInput={(inputIndex, newInput) => updateInputInProposal(proposalIndex, inputIndex, newInput)}
                 inflationRate={inflationRate}
-                currencyRate={currencyRate}
+                currencyRate={proposal.target.currencyRate}
                 useInflation={useInflation}
                 setProcessData={setProcessData}
                 disabled={finalNotionalAmount !== null}
-                selectedCurrency={selectedCurrency}
                 company={company}
-                notionalAmount={notionalAmount} // Pass notionalAmount to Proposal
+                cashValueInfo={cashValueInfo}
               />
             ))}
           </Grid>
@@ -288,7 +319,7 @@ const App = () => {
             <Card elevation={3} sx={{ p: 2 }}>
               <UseInflation
                 inflationRate={inflationRate}
-                currencyRate={currencyRate}
+                currencyRate={proposals[0].target.currencyRate}
                 useInflation={useInflation}
                 setUseInflation={setUseInflation}
                 onInflationRateChange={handleInflationRateChange}
@@ -307,23 +338,11 @@ const App = () => {
                 filename={filename}
                 setfilename={setfilename}
                 IsProduction_Login={IsProduction_Login}
-                selectedCurrency={selectedCurrency}
                 proposals={proposals}
-                setProposals={setProposals} // Pass setProposals
-                setNotionalAmount={setNotionalAmount} // Pass setNotionalAmount
-                notionalAmount={notionalAmount} 
+                setProposals={setProposals}
+                setNotionalAmount={setNotionalAmount}
+                notionalAmount={notionalAmount}
               />
-            </Card>
-            <Card elevation={3} sx={{ mt: 2, p: 2 }}>
-              {proposals.map((proposal, proposalIndex) => (
-                <OutputForm_2
-                  key={proposalIndex}
-                  proposal={proposal}
-                  finalNotionalAmount={finalNotionalAmount}
-                  cashValueInfo={cashValueInfo}
-                  selectedCurrency={selectedCurrency}
-                />
-              ))}
             </Card>
             {finalNotionalAmount && (
               <Card elevation={3} sx={{ mt: 2, p: 2 }}>
@@ -338,7 +357,6 @@ const App = () => {
                     appBarColor={appBarColor}
                     pdfBase64={pdfBase64}
                     filename={filename}
-                    selectedCurrency={selectedCurrency}
                   />
                 ))}
               </Card>
@@ -348,8 +366,6 @@ const App = () => {
                 setAppBarColor={setAppBarColor}
                 appBarColor={appBarColor}
                 setCompany={setCompany}
-                selectedCurrency={selectedCurrency}
-                setSelectedCurrency={setSelectedCurrency}
               />
             </Box>
           </Grid>
